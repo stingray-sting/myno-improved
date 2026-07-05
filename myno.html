@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYNO — Organize Your Knowledge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --brown-950:#14100c;
+  --brown-900:#1c140e;
+  --brown-800:#2b1c12;
+  --brown-700:#3d2818;
+  --brown-600:#5a3c24;
+  --gold-500:#c9a24d;
+  --gold-400:#e0bd6e;
+  --gold-300:#f0d9a0;
+  --beige-300:#d8c3a0;
+  --beige-200:#e6d5b3;
+  --cream-100:#f3ead9;
+  --cream-50:#faf5ea;
+  --ink:#efe4cf;
+  --accent: var(--gold-500);
+  --accent-bright: var(--gold-400);
+  --shelf-wood-a: #4a2f1c;
+  --shelf-wood-b: #2f1c10;
+  --radius-sm:6px;
+  --radius-md:12px;
+  --radius-lg:20px;
+  --shadow-soft: 0 10px 30px rgba(0,0,0,.35);
+  --dur:.45s;
+  --ease: cubic-bezier(.22,.9,.32,1);
+  --font-display:'Cormorant Garamond', serif;
+  --font-body:'Source Serif 4', Georgia, serif;
+  --font-ui:'Inter', system-ui, sans-serif;
+}
+html[data-theme="dark"]{
+  --bg-0: var(--brown-950);
+  --bg-1: var(--brown-900);
+  --bg-2: var(--brown-800);
+  --panel: #241811;
+  --panel-2: #2c1e14;
+  --text-1: var(--cream-100);
+  --text-2: #c9b696;
+  --border: rgba(201,162,77,.22);
+}
+html[data-theme="light"]{
+  --bg-0: var(--cream-50);
+  --bg-1: var(--cream-100);
+  --bg-2: var(--beige-200);
+  --panel: #fffaf1;
+  --panel-2: #f4e9d4;
+  --text-1: #2b1c12;
+  --text-2: #6b5636;
+  --border: rgba(90,60,30,.18);
+}
+html[data-anim="off"] *{ animation-duration:0.001s !important; transition-duration:0.001s !important; }
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg-0);
+  color:var(--text-1);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#app{min-height:100vh;}
+a{color:inherit;}
+button{font-family:var(--font-ui);cursor:pointer;}
+input,select{font-family:var(--font-ui);}
+::selection{background:var(--gold-500);color:var(--brown-950);}
+.scrim{
+  position:fixed;inset:0;background:radial-gradient(ellipse at 50% -10%, rgba(201,162,77,.08), transparent 60%);
+  pointer-events:none;z-index:0;
+}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:var(--bg-1);}
+::-webkit-scrollbar-thumb{background:var(--brown-600);border-radius:8px;}
+
+.h-display{font-family:var(--font-display);font-weight:600;letter-spacing:.01em;}
+.eyebrow{font-family:var(--font-ui);text-transform:uppercase;letter-spacing:.22em;font-size:11px;color:var(--gold-400);font-weight:600;}
+.btn{
+  font-family:var(--font-ui);font-weight:600;font-size:14px;letter-spacing:.02em;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--text-1);
+  padding:12px 22px;border-radius:999px;transition:all .25s var(--ease);
+}
+.btn:hover{border-color:var(--gold-500);transform:translateY(-1px);box-shadow:0 6px 18px rgba(201,162,77,.18);}
+.btn.gold{background:linear-gradient(180deg,var(--gold-400),var(--gold-500));color:var(--brown-950);border:none;}
+.btn.gold:hover{box-shadow:0 8px 24px rgba(201,162,77,.4);}
+.btn.ghost{background:transparent;}
+.btn.small{padding:7px 14px;font-size:12.5px;}
+.btn.icon{padding:8px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;}
+.btn.danger:hover{border-color:#c15a4a;color:#e07a63;}
+input[type=text],input[type=password],input[type=number],input[type=search]{
+  background:var(--bg-1);border:1px solid var(--border);color:var(--text-1);
+  border-radius:10px;padding:10px 14px;font-size:14px;outline:none;transition:border-color .2s;
+}
+input:focus,select:focus{border-color:var(--gold-500);}
+.icon-svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ============================= LANDING ============================= */
+.landing{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;text-align:center;background:
+    radial-gradient(1200px 600px at 50% 0%, rgba(201,162,77,.10), transparent 60%),
+    repeating-linear-gradient(180deg, var(--bg-0) 0 2px, var(--bg-1) 2px 4px);
+}
+.landing .wordmark{font-size:clamp(72px,14vw,160px);line-height:.9;color:var(--text-1);
+  background:linear-gradient(180deg,var(--gold-300),var(--gold-500) 60%, var(--brown-700));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:fadeUp 1.1s var(--ease) both; letter-spacing:.02em;
+}
+.landing .tag{font-family:var(--font-display);font-style:italic;font-size:clamp(18px,2.6vw,26px);
+  color:var(--text-2);margin-top:6px;animation:fadeUp 1.1s var(--ease) .15s both;}
+.landing .rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--gold-500),transparent);margin:28px 0;animation:fadeUp 1.1s var(--ease) .25s both;}
+.landing .cta{animation:fadeUp 1.1s var(--ease) .4s both;}
+.landing .spines{position:absolute;bottom:0;left:0;right:0;height:120px;display:flex;justify-content:center;gap:6px;opacity:.5;filter:blur(.3px);}
+.landing .spines .s{width:22px;height:var(--h,80px);border-radius:3px 3px 0 0;align-self:flex-end;animation:riseIn .9s var(--ease) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes riseIn{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+
+/* ============================= VAULT LOGIN ============================= */
+.vault-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;
+  background:
+    radial-gradient(900px 500px at 50% 10%, rgba(201,162,77,.08), transparent 60%), var(--bg-0);
+  perspective:1800px;
+}
+.vault-frame{width:min(420px,90vw);}
+.vault-title{text-align:center;margin-bottom:28px;}
+.vault-title .h-display{font-size:40px;color:var(--gold-400);}
+.vault-title .sub{color:var(--text-2);font-family:var(--font-ui);font-size:13px;letter-spacing:.05em;}
+
+.vault-door-wrap{position:relative;width:100%;aspect-ratio:1/1;transform-style:preserve-3d;}
+.vault-ring{position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 0deg, var(--brown-700), var(--brown-600) 10%, var(--brown-700) 20%, var(--brown-600) 30%, var(--brown-700) 40%, var(--brown-600) 50%, var(--brown-700) 60%, var(--brown-600) 70%, var(--brown-700) 80%, var(--brown-600) 90%, var(--brown-700));
+  box-shadow: inset 0 0 40px rgba(0,0,0,.6), 0 20px 50px rgba(0,0,0,.5), 0 0 0 3px rgba(201,162,77,.3);
+}
+.vault-door{
+  position:absolute; inset:5%; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, #6b4a2c, #3a2414 65%, #241408 100%);
+  box-shadow: inset 0 0 30px rgba(0,0,0,.7), 0 0 0 6px rgba(201,162,77,.25), 0 10px 40px rgba(0,0,0,.6);
+  transform-origin: 0% 50%;
+  transition: transform 1.1s var(--ease), box-shadow .4s;
+  display:flex;align-items:center;justify-content:center;
+}
+.vault-door.error{ animation: doorShake .5s; box-shadow: inset 0 0 30px rgba(0,0,0,.7), 0 0 0 6px rgba(200,60,40,.55), 0 0 40px rgba(200,60,40,.5); }
+.vault-door.open{ transform: rotateY(-118deg) translateZ(10px); }
+@keyframes doorShake{ 0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);} 40%{transform:translateX(7px);} 60%{transform:translateX(-5px);} 80%{transform:translateX(4px);} }
+
+.dial{width:46%;aspect-ratio:1/1;border-radius:50%;
+  background: radial-gradient(circle at 40% 35%, var(--gold-300), var(--gold-500) 55%, var(--brown-700) 100%);
+  box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 10px rgba(0,0,0,.3);
+  position:relative; transition: transform 1.4s cubic-bezier(.6,-0.3,.2,1.3);
+}
+.dial::before{content:'';position:absolute;inset:20%;border-radius:50%;border:2px solid rgba(0,0,0,.35);}
+.dial::after{content:'';position:absolute;top:6%;left:50%;width:3px;height:16%;background:var(--brown-950);transform:translateX(-50%);border-radius:2px;}
+.dial.spin{transform:rotate(1080deg);}
+.dial.spin-back{transform:rotate(-540deg);}
+.bolt{position:absolute;width:6%;height:14%;background:linear-gradient(180deg,var(--gold-400),var(--brown-700));border-radius:3px;
+  box-shadow:0 2px 6px rgba(0,0,0,.5); transition: transform .6s var(--ease);}
+.bolt.b1{top:2%;left:47%;} .bolt.b2{bottom:2%;left:47%;} .bolt.b3{left:2%;top:47%;} .bolt.b4{right:2%;top:47%;}
+.vault-door.open .bolt{transform:translateY(0) scale(0.4);opacity:0;}
+
+.vault-form{margin-top:30px;display:flex;flex-direction:column;gap:12px;}
+.vault-field{position:relative;}
+.vault-field label{display:block;font-family:var(--font-ui);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-400);margin-bottom:6px;}
+.vault-field input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:var(--text-1);font-size:15px;letter-spacing:.03em;}
+.vault-error{color:#e07a63;font-size:12.5px;font-family:var(--font-ui);min-height:16px;text-align:center;}
+.vault-actions{display:flex;justify-content:center;margin-top:6px;}
+.vault-toggle{text-align:center;margin-top:14px;font-size:12.5px;color:var(--text-2);font-family:var(--font-ui);}
+.vault-toggle span{color:var(--gold-400);cursor:pointer;text-decoration:underline;}
+
+/* ============================= APP SHELL ============================= */
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:230px;flex:none;background:var(--bg-1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:22px 14px;gap:4px;position:sticky;top:0;height:100vh;}
+.sidebar .brand{font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--gold-400);padding:6px 10px 22px;letter-spacing:.03em;}
+.side-link{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:var(--text-2);
+  font-family:var(--font-ui);font-size:14px;font-weight:500;transition:all .2s; text-decoration:none;}
+.side-link:hover{background:var(--panel-2);color:var(--text-1);}
+.side-link.active{background:linear-gradient(90deg, rgba(201,162,77,.18), transparent);color:var(--gold-400);border-left:2px solid var(--gold-500);padding-left:10px;}
+.side-link .icon-svg{width:17px;height:17px;flex:none;}
+.sidebar .spacer{flex:1;}
+.sidebar .userchip{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--panel-2);margin-bottom:8px;}
+.userchip .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold-400),var(--brown-700));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--brown-950);flex:none;}
+.userchip .name{font-family:var(--font-ui);font-size:13px;font-weight:600;}
+.main{flex:1;min-width:0;padding:26px 34px 60px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:26px;flex-wrap:wrap;}
+.topbar .searchbox{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:9px 16px;min-width:260px;flex:1;max-width:420px;}
+.topbar .searchbox input{background:transparent;border:none;flex:1;color:var(--text-1);font-size:13.5px;}
+.topbar .searchbox input:focus{outline:none;}
+.pagehead{margin-bottom:22px;}
+.pagehead .crumb{font-family:var(--font-ui);font-size:12px;color:var(--text-2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+.pagehead h1{font-family:var(--font-display);font-size:36px;margin:0;font-weight:600;}
+.pagehead p{color:var(--text-2);margin:6px 0 0;font-size:14.5px;}
+
+@media(max-width:880px){
+  .sidebar{position:fixed;left:-240px;z-index:50;transition:left .3s;box-shadow:20px 0 40px rgba(0,0,0,.4);}
+  .sidebar.open{left:0;}
+  .main{padding:18px;}
+  .menubtn{display:inline-flex !important;}
+}
+.menubtn{display:none;}
+
+/* ============================= BOOKSHELF ============================= */
+.shelf-row{position:relative;margin-bottom:56px;}
+.shelf-row .plank{position:absolute;left:-6px;right:-6px;bottom:-14px;height:22px;border-radius:4px;
+  background:linear-gradient(180deg, var(--shelf-wood-a), var(--shelf-wood-b));
+  box-shadow:0 14px 18px -8px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.06);
+}
+.shelf-books{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:20px 4px 34px;perspective:900px;}
+.book{
+  width:74px;height:210px;border-radius:4px 8px 8px 4px;position:relative;cursor:pointer;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:16px;
+  box-shadow: 3px 0 0 rgba(0,0,0,.15) inset, -2px 4px 10px rgba(0,0,0,.4);
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease);
+  transform-style:preserve-3d;
+}
+.book::before{content:'';position:absolute;top:8px;bottom:8px;left:6px;width:2px;background:rgba(255,215,150,.5);}
+.book::after{content:'';position:absolute;top:8px;bottom:8px;right:0;left:0;margin:0 6px;border-top:1px solid rgba(255,215,150,.35);border-bottom:1px solid rgba(255,215,150,.35);}
+.book:hover{transform:translateY(-14px) rotateZ(-1.5deg);box-shadow:3px 0 0 rgba(0,0,0,.15) inset, 0 20px 26px -8px rgba(0,0,0,.55);}
+.book .title{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--font-display);font-weight:600;
+  color:rgba(255,244,220,.92);font-size:15px;letter-spacing:.02em;max-height:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.4);}
+.book .foil{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:26px;height:26px;opacity:.85;}
+.book.addnew{background:transparent !important;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;box-shadow:none;}
+.book.addnew:hover{border-color:var(--gold-500);}
+.book.addnew .icon-svg{width:26px;height:26px;color:var(--gold-400);}
+.book .spine-actions{position:absolute;top:-10px;right:-8px;display:none;gap:4px;}
+.book:hover .spine-actions{display:flex;}
+.spine-actions button{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:center;}
+.spine-actions .icon-svg{width:12px;height:12px;}
+
+/* page flip overlay */
+.pageflip-overlay{position:fixed;inset:0;background:var(--cream-100);z-index:200;transform-origin:left center;
+  animation: pageflip .55s var(--ease) forwards;}
+@keyframes pageflip{ from{transform:rotateY(0deg);opacity:1;} to{transform:rotateY(-95deg);opacity:.2;} }
+
+/* ============================= SECTION PAGE ============================= */
+.dropzone{border:2px dashed var(--border);border-radius:var(--radius-md);padding:34px;text-align:center;
+  background:var(--panel);transition:border-color .2s,background .2s;margin-bottom:22px;}
+.dropzone.drag{border-color:var(--gold-500);background:var(--panel-2);}
+.dropzone .icon-svg{width:34px;height:34px;color:var(--gold-400);margin-bottom:8px;}
+.dropzone h3{margin:6px 0 4px;font-family:var(--font-display);font-size:20px;font-weight:600;}
+.dropzone p{color:var(--text-2);font-size:13px;margin:0 0 12px;}
+
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+.toolbar .grow{flex:1;min-width:180px;}
+.toolbar select{background:var(--panel);border:1px solid var(--border);color:var(--text-1);border-radius:8px;padding:8px 10px;font-size:13px;}
+.viewtoggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.viewtoggle button{padding:8px 10px;background:var(--panel);border:none;color:var(--text-2);}
+.viewtoggle button.active{background:var(--gold-500);color:var(--brown-950);}
+
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px;}
+.file-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;position:relative;transition:transform .2s, box-shadow .2s;}
+.file-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-soft);}
+.file-cover{width:100%;aspect-ratio:3/4;border-radius:6px;background:linear-gradient(160deg,var(--gold-400),var(--brown-700));
+  display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15), 0 6px 14px rgba(0,0,0,.35);}
+.file-cover::after{content:'';position:absolute;top:0;bottom:0;left:10px;width:1px;background:rgba(255,255,255,.35);}
+.file-cover .icon-svg{width:28px;height:28px;color:rgba(255,255,255,.85);}
+.file-name{font-family:var(--font-ui);font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-meta{font-size:11px;color:var(--text-2);font-family:var(--font-ui);}
+.file-card .fav-btn{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.35);border:none;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+.file-card .fav-btn .icon-svg{width:14px;height:14px;color:#fff;}
+.file-card .fav-btn.on .icon-svg{color:var(--gold-400);fill:var(--gold-400);}
+.file-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.file-actions button{flex:1;min-width:30px;}
+
+.file-list{width:100%;border-collapse:collapse;}
+.file-list th{text-align:left;font-family:var(--font-ui);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-2);padding:8px 10px;border-bottom:1px solid var(--border);}
+.file-list td{padding:10px;border-bottom:1px solid var(--border);font-size:13.5px;}
+.file-list tr:hover{background:var(--panel);}
+
+.empty-state{text-align:center;padding:50px 20px;color:var(--text-2);}
+.empty-state .icon-svg{width:40px;height:40px;color:var(--gold-500);margin-bottom:10px;}
+
+/* ============================= PDF VIEWER ============================= */
+.viewer{display:flex;height:calc(100vh - 100px);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--panel);}
+.viewer.fullscreen{position:fixed;inset:0;height:100vh;z-index:300;border-radius:0;}
+.viewer-thumbs{width:130px;flex:none;background:var(--bg-1);overflow-y:auto;padding:10px;border-right:1px solid var(--border);}
+.viewer-thumbs .thumb{margin-bottom:10px;cursor:pointer;border:2px solid transparent;border-radius:4px;overflow:hidden;}
+.viewer-thumbs .thumb.active{border-color:var(--gold-500);}
+.viewer-thumbs canvas{width:100%;display:block;}
+.viewer-thumbs .tnum{text-align:center;font-size:10px;color:var(--text-2);padding:2px;font-family:var(--font-ui);}
+.viewer-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.viewer-toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--bg-1);}
+.viewer-toolbar .spacer{flex:1;}
+.viewer-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:20px;background:var(--bg-0);}
+.viewer-canvas-wrap.darkinvert canvas{filter:invert(0.92) hue-rotate(180deg);}
+.viewer-progress{height:3px;background:var(--border);}
+.viewer-progress .bar{height:100%;background:var(--gold-500);transition:width .2s;}
+.viewer-search-panel{position:absolute;top:60px;right:20px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;width:230px;box-shadow:var(--shadow-soft);z-index:5;}
+.viewer-search-panel .res{padding:6px 8px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+.viewer-search-panel .res:hover{background:var(--panel-2);}
+.pill{font-size:11px;font-family:var(--font-ui);background:var(--panel-2);border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:var(--text-2);}
+
+/* ============================= MODAL ============================= */
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,6,3,.6);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:400;animation:fadeIn .2s;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;width:min(420px,92vw);box-shadow:var(--shadow-soft);animation:fadeUp .3s var(--ease);}
+.modal h2{font-family:var(--font-display);margin:0 0 16px;font-size:24px;}
+.modal .field{margin-bottom:14px;}
+.modal .field label{display:block;font-size:12px;color:var(--text-2);margin-bottom:5px;font-family:var(--font-ui);}
+.modal .field input, .modal .field select{width:100%;}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.swatch.sel{border-color:var(--text-1);}
+
+/* ============================= SETTINGS ============================= */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;}
+.setting-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;}
+.setting-card h3{margin:0 0 4px;font-family:var(--font-display);font-size:19px;}
+.setting-card p.desc{color:var(--text-2);font-size:12.5px;margin:0 0 14px;}
+.toggle{width:44px;height:24px;border-radius:20px;background:var(--border);position:relative;cursor:pointer;transition:.2s;flex:none;}
+.toggle.on{background:var(--gold-500);}
+.toggle .dot{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;}
+.toggle.on .dot{left:22px;}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--brown-950);color:var(--cream-100);
+  padding:12px 22px;border-radius:999px;font-family:var(--font-ui);font-size:13px;border:1px solid var(--gold-500);
+  box-shadow:var(--shadow-soft);z-index:500;animation:toastIn .3s var(--ease);}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,14px);}to{opacity:1;transform:translate(-50%,0);}}
+</style>
+</head>
+<body>
+<div class="scrim"></div>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script>
+/* ======================================================================
+   MYNO — client-side prototype
+   Architecture notes (for future backend swap):
+   - `Store` = local persistence facade (localStorage) for structural data
+     (subjects/sections/settings). In production this becomes an API client
+     (services/subjectService.ts) hitting Postgres/Supabase/Firebase/Mongo.
+   - `FileDB` = IndexedDB facade for binary PDFs + file metadata. In
+     production this becomes an object-storage client (S3/Supabase Storage)
+     + a metadata table, behind the same method signatures.
+   - `Router` = tiny hash router standing in for React Router.
+   Swapping either facade's internals is enough to go from local-only to
+   a real backend without touching view code.
+   ====================================================================== */
+
+/* ---------------------------- ICONS ---------------------------- */
+const ICONS = {
+  book:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5V4.5Z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  list:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  dashboard:'<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>',
+  search:'<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  upload:'<path d="M12 16V4"/><polyline points="6 10 12 4 18 10"/><path d="M4 20h16"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  download:'<path d="M12 4v12"/><polyline points="6 12 12 18 18 12"/><path d="M4 20h16"/>',
+  eye:'<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  chevL:'<polyline points="15 18 9 12 15 6"/>',
+  chevR:'<polyline points="9 18 15 12 9 6"/>',
+  zoomIn:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>',
+  zoomOut:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>',
+  expand:'<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+  bookmark:'<path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/>',
+  moon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>',
+  sun:'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+  menu:'<line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+};
+function icon(name, cls=''){ return `<svg class="icon-svg ${cls}" viewBox="0 0 24 24">${ICONS[name]||''}</svg>`; }
+
+/* ---------------------------- UTIL ---------------------------- */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Math.random().toString(36).slice(2)+Date.now());
+function fmtBytes(b){ if(b<1024) return b+' B'; if(b<1024*1024) return (b/1024).toFixed(1)+' KB'; return (b/1024/1024).toFixed(2)+' MB'; }
+function fmtDate(ts){ const d=new Date(ts); return d.toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){
+  const root = document.getElementById('toast-root');
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  root.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+async function simpleHash(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+const BOOK_COLORS = [
+  ['#7a2e2e','#4a1717'],['#2e4d3a','#173726'],['#2e3a5f','#17203a'],
+  ['#6b4a1e','#402c10'],['#5a2e5f','#341939'],['#1f5c5c','#0f3535'],
+  ['#5f5320','#332b10'],['#4a2814','#2b1608'],['#3a5f4d','#1f382e'],['#5f2e3a','#391a21'],
+];
+function colorFor(seed){
+  let h=0; for(const c of String(seed)) h = (h*31 + c.charCodeAt(0))>>>0;
+  return BOOK_COLORS[h % BOOK_COLORS.length];
+}
+
+/* ---------------------------- STORE (localStorage facade) ---------------------------- */
+const Store = (() => {
+  const KEY = 'myno_state_v1';
+  function defaults(){
+    return {
+      auth: { username:null, passHash:null },
+      session: false,
+      theme: 'dark',
+      accentColor: '#c9a24d',
+      shelfStyle: 'mahogany',
+      animations: true,
+      subjects: [],
+    };
+  }
+  let state = load();
+  function load(){
+    try{ const raw = localStorage.getItem(KEY); if(!raw) return defaults();
+      return Object.assign(defaults(), JSON.parse(raw));
+    }catch(e){ return defaults(); }
+  }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+  return {
+    get: () => state,
+    set: (patch) => { Object.assign(state, patch); save(); },
+    saveNow: save,
+    reset: () => { state = defaults(); save(); },
+  };
+})();
+
+/* ---------------------------- FILE DB (IndexedDB facade) ---------------------------- */
+const FileDB = (() => {
+  let dbp = null;
+  function open(){
+    if(dbp) return dbp;
+    dbp = new Promise((resolve,reject)=>{
+      const req = indexedDB.open('myno_files_db', 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains('files')){
+          const store = db.createObjectStore('files',{keyPath:'id'});
+          store.createIndex('bySection',['subjectId','sectionId']);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbp;
+  }
+  async function tx(mode='readonly'){ const db = await open(); return db.transaction('files',mode).objectStore('files'); }
+  return {
+    async add(record){ const s = await tx('readwrite'); return new Promise((res,rej)=>{ const r=s.add(record); r.onsuccess=()=>res(record); r.onerror=()=>rej(r.error); }); },
+    async put(record){ const s = await tx('readwrite'); return new Promise((res,rej)=>{ const r=s.put(record); r.onsuccess=()=>res(record); r.onerror=()=>rej(r.error); }); },
+    async get(id){ const s = await tx(); return new Promise((res,rej)=>{ const r=s.get(id); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+    async delete(id){ const s = await tx('readwrite'); return new Promise((res,rej)=>{ const r=s.delete(id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); },
+    async all(){ const s = await tx(); return new Promise((res,rej)=>{ const r=s.getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); },
+    async bySection(subjectId, sectionId){ const all = await this.all(); return all.filter(f=>f.subjectId===subjectId && f.sectionId===sectionId && !f.deleted); },
+  };
+})();
+
+/* ---------------------------- ROUTER ---------------------------- */
+const Router = {
+  routes: {},
+  on(pattern, handler){ this.routes[pattern]=handler; },
+  navigate(hash){ location.hash = hash; },
+  start(){ window.addEventListener('hashchange', () => this.resolve()); this.resolve(); },
+  resolve(){
+    const hash = location.hash.slice(1) || '/';
+    for(const pattern in this.routes){
+      const keys = [];
+      const rx = new RegExp('^'+pattern.replace(/:[^/]+/g, m => { keys.push(m.slice(1)); return '([^/]+)'; })+'$');
+      const m = hash.match(rx);
+      if(m){
+        const params = {}; keys.forEach((k,i)=>params[k]=decodeURIComponent(m[i+1]));
+        this.routes[pattern](params);
+        return;
+      }
+    }
+    this.routes['/']({});
+  }
+};
+
+const app = document.getElementById('app');
+function render(html){ app.innerHTML = html; window.scrollTo(0,0); }
+function applyTheme(){
+  const s = Store.get();
+  document.documentElement.dataset.theme = s.theme;
+  document.documentElement.dataset.anim = s.animations ? 'on' : 'off';
+  document.documentElement.style.setProperty('--accent', s.accentColor);
+  const woods = { mahogany:['#4a2f1c','#2f1c10'], walnut:['#3a2a1d','#241811'], oak:['#6b4a2c','#4a3319'] };
+  const w = woods[s.shelfStyle] || woods.mahogany;
+  document.documentElement.style.setProperty('--shelf-wood-a', w[0]);
+  document.documentElement.style.setProperty('--shelf-wood-b', w[1]);
+}
+applyTheme();
+
+/* =====================================================================
+   VIEW: LANDING
+   ===================================================================== */
+function viewLanding(){
+  const spines = Array.from({length:14}).map((_,i)=>{
+    const [c1] = colorFor(i);
+    const h = 60+((i*37)%70);
+    return `<div class="s" style="--h:${h}px;background:${c1}"></div>`;
+  }).join('');
+  render(`
+    <div class="landing">
+      <div class="eyebrow">A Private Library For Your Semester</div>
+      <div class="wordmark h-display">MYNO</div>
+      <div class="tag">Organize Your Knowledge.</div>
+      <div class="rule"></div>
+      <div class="cta"><button class="btn gold" onclick="Router.navigate('/login')">Get Started ${icon('chevR')}</button></div>
+      <div class="spines">${spines}</div>
+    </div>
+  `);
+}
+
+/* =====================================================================
+   VIEW: VAULT LOGIN
+   ===================================================================== */
+let vaultMode = 'auto'; // decided on render
+function viewLogin(){
+  const s = Store.get();
+  const hasUser = !!(s.auth && s.auth.username);
+  vaultMode = hasUser ? 'unlock' : 'setup';
+  paintVault();
+}
+function paintVault(){
+  const setup = vaultMode === 'setup';
+  render(`
+    <div class="vault-screen">
+      <div class="vault-frame">
+        <div class="vault-title">
+          <div class="h-display">${setup ? 'Forge Your Vault' : 'Unlock Your Vault'}</div>
+          <div class="sub">${setup ? 'Set a username & password to seal your library.' : 'Enter your credentials to open the archive.'}</div>
+        </div>
+        <div class="vault-door-wrap">
+          <div class="vault-ring"></div>
+          <div class="vault-door" id="vaultDoor">
+            <div class="bolt b1"></div><div class="bolt b2"></div><div class="bolt b3"></div><div class="bolt b4"></div>
+            <div class="dial" id="vaultDial"></div>
+          </div>
+        </div>
+        <form class="vault-form" onsubmit="return handleVaultSubmit(event)">
+          <div class="vault-field">
+            <label>Username</label>
+            <input type="text" id="vUser" autocomplete="username" required />
+          </div>
+          <div class="vault-field">
+            <label>Password</label>
+            <input type="password" id="vPass" autocomplete="${setup?'new-password':'current-password'}" required />
+          </div>
+          ${setup ? `<div class="vault-field"><label>Confirm Password</label><input type="password" id="vPass2" required /></div>` : ''}
+          <div class="vault-error" id="vErr"></div>
+          <div class="vault-actions">
+            <button type="submit" class="btn gold">${setup ? 'Seal Vault' : 'Unlock'} ${icon('chevR')}</button>
+          </div>
+        </form>
+        <div class="vault-toggle">
+          ${setup ? '' : `Forgot your combination? <span onclick="resetVault()">Reset vault</span>`}
+        </div>
+      </div>
+    </div>
+  `);
+}
+window.resetVault = function(){
+  if(!confirm('This will erase your saved username & password (your subjects and files stay intact). Continue?')) return;
+  Store.set({ auth:{username:null,passHash:null} });
+  vaultMode = 'setup'; paintVault();
+};
+window.handleVaultSubmit = async function(e){
+  e.preventDefault();
+  const user = document.getElementById('vUser').value.trim();
+  const pass = document.getElementById('vPass').value;
+  const errEl = document.getElementById('vErr');
+  const dial = document.getElementById('vaultDial');
+  const door = document.getElementById('vaultDoor');
+  dial.classList.add('spin'); setTimeout(()=>dial.classList.remove('spin'), 1400);
+
+  if(vaultMode === 'setup'){
+    const pass2 = document.getElementById('vPass2').value;
+    if(pass.length < 4){ errEl.textContent='Password must be at least 4 characters.'; return false; }
+    if(pass !== pass2){ errEl.textContent='Passwords do not match.'; return false; }
+    const hash = await simpleHash(pass);
+    Store.set({ auth:{ username:user, passHash:hash } });
+    errEl.textContent='';
+    setTimeout(()=>unlockAnimation(door), 200);
+    return false;
+  } else {
+    const s = Store.get();
+    const hash = await simpleHash(pass);
+    if(user === s.auth.username && hash === s.auth.passHash){
+      errEl.textContent='';
+      setTimeout(()=>unlockAnimation(door), 200);
+    } else {
+      door.classList.add('error');
+      errEl.textContent = 'Incorrect username or password. Try again.';
+      setTimeout(()=>door.classList.remove('error'), 500);
+    }
+    return false;
+  }
+};
+function unlockAnimation(door){
+  door.classList.add('open');
+  toast('Vault unlocked.');
+  setTimeout(()=>{
+    Store.set({ session:true });
+    Router.navigate('/dashboard');
+  }, 950);
+}
+
+/* =====================================================================
+   SIDEBAR + SHELL
+   ===================================================================== */
+function requireAuth(){
+  const s = Store.get();
+  if(!s.session){ Router.navigate('/login'); return false; }
+  return true;
+}
+function shellStart(activeKey, crumb, title, subtitle, bodyHtml){
+  const s = Store.get();
+  const initials = (s.auth.username||'?').slice(0,2).toUpperCase();
+  const links = [
+    ['dashboard','/dashboard','dashboard','Dashboard'],
+    ['subjects','/subjects','book','Subjects'],
+    ['recent','/recent','clock','Recent Files'],
+    ['favorites','/favorites','star','Favorites'],
+    ['recycle','/recycle','trash','Recycle Bin'],
+    ['settings','/settings','settings','Settings'],
+  ];
+  return `
+  <div class="shell">
+    <div class="sidebar" id="sidebar">
+      <div class="brand">MYNO</div>
+      <div class="userchip"><div class="av">${initials}</div><div class="name">${esc(s.auth.username||'Reader')}</div></div>
+      ${links.map(([k,href,ic,label])=>`<a class="side-link ${activeKey===k?'active':''}" href="#${href}">${icon(ic)}<span>${label}</span></a>`).join('')}
+      <div class="spacer"></div>
+      <div class="side-link" onclick="doLogout()" style="cursor:pointer">${icon('logout')}<span>Logout</span></div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <button class="btn icon menubtn" onclick="document.getElementById('sidebar').classList.toggle('open')">${icon('menu')}</button>
+        <div class="searchbox">${icon('search')}<input type="search" placeholder="Search subjects, sections, PDFs…" id="globalSearch" onkeydown="if(event.key==='Enter') doGlobalSearch(this.value)"/></div>
+        <button class="btn icon" title="Toggle theme" onclick="toggleTheme()">${icon(s.theme==='dark'?'sun':'moon')}</button>
+      </div>
+      <div class="pagehead">
+        <div class="crumb">${crumb}</div>
+        <h1 class="h-display">${title}</h1>
+        ${subtitle ? `<p>${subtitle}</p>` : ''}
+      </div>
+      ${bodyHtml}
+    </div>
+  </div>`;
+}
+window.doLogout = function(){ Store.set({session:false}); Router.navigate('/login'); };
+window.toggleTheme = function(){ const s=Store.get(); Store.set({theme: s.theme==='dark'?'light':'dark'}); applyTheme(); Router.resolve(); };
+window.doGlobalSearch = function(q){ Router.navigate('/search/'+encodeURIComponent(q)); };
+
+/* =====================================================================
+   VIEW: DASHBOARD (+ onboarding)
+   ===================================================================== */
+function viewDashboard(){
+  if(!requireAuth()) return;
+  const s = Store.get();
+  if(s.subjects.length === 0){ paintOnboardCount(); return; }
+  paintDashboard();
+}
+function paintOnboardCount(){
+  const s = Store.get();
+  render(shellStart('dashboard','Welcome','Welcome, '+esc(s.auth.username), 'Let’s set up your shelves for this semester.', `
+    <div class="setting-card" style="max-width:480px">
+      <h3>My Subjects</h3>
+      <p class="desc">How many subjects do you have this semester?</p>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="number" min="1" max="24" id="subjCount" value="6" style="width:100px" />
+        <button class="btn gold" onclick="confirmSubjectCount()">Confirm ${icon('chevR')}</button>
+      </div>
+    </div>
+  `));
+}
+window.confirmSubjectCount = function(){
+  const n = Math.max(1, Math.min(24, parseInt(document.getElementById('subjCount').value)||1));
+  paintOnboardNames(n);
+};
+function paintOnboardNames(n){
+  const s = Store.get();
+  const fields = Array.from({length:n}).map((_,i)=>`
+    <div class="field"><label>Subject ${i+1}</label><input type="text" class="onb-name" placeholder="e.g. Artificial Intelligence"/></div>
+  `).join('');
+  render(shellStart('dashboard','Welcome','Name your subjects', 'Give each of your '+n+' subjects a name — each becomes a book on your shelf.', `
+    <div class="setting-card" style="max-width:520px">
+      ${fields}
+      <div class="row"><button class="btn ghost" onclick="paintOnboardCount()">Back</button><button class="btn gold" onclick="confirmSubjectNames()">Create Bookshelf ${icon('chevR')}</button></div>
+    </div>
+  `));
+}
+window.confirmSubjectNames = function(){
+  const inputs = Array.from(document.querySelectorAll('.onb-name'));
+  const names = inputs.map((el,i)=> el.value.trim() || ('Subject '+(i+1)));
+  const subjects = names.map(name => ({
+    id: uid(), name,
+    sections: [
+      {id:uid(), name:'Notes', builtIn:true},
+      {id:uid(), name:'Short Notes', builtIn:true},
+      {id:uid(), name:'Previous Year Question Papers', builtIn:true},
+    ]
+  }));
+  Store.set({ subjects });
+  toast('Bookshelf created.');
+  paintDashboard();
+};
+function bookHtml(id, name, extraClass, onClick, actionsHtml){
+  const [c1,c2] = colorFor(id);
+  return `
+  <div class="book ${extraClass||''}" style="background:linear-gradient(160deg, ${c1}, ${c2})" onclick="${onClick}">
+    ${actionsHtml ? `<div class="spine-actions" onclick="event.stopPropagation()">${actionsHtml}</div>` : ''}
+    <div class="foil">${icon('book')}</div>
+    <div class="title">${esc(name)}</div>
+  </div>`;
+}
+function paintDashboard(){
+  const s = Store.get();
+  const books = s.subjects.map(sub => bookHtml(sub.id, sub.name, '', `openSubject('${sub.id}')`,
+    `<button onclick="renameSubject('${sub.id}')">${icon('edit')}</button><button onclick="deleteSubject('${sub.id}')">${icon('trash')}</button>`
+  )).join('');
+  const addBook = `<div class="book addnew" onclick="addSubjectPrompt()">${icon('plus')}</div>`;
+  render(shellStart('dashboard','Dashboard','Welcome, '+esc(s.auth.username), 'My Subjects — click a book to open it.', `
+    <div class="shelf-row">
+      <div class="shelf-books">${books}${addBook}</div>
+      <div class="plank"></div>
+    </div>
+  `));
+}
+window.addSubjectPrompt = function(){
+  const name = prompt('New subject name:');
+  if(!name) return;
+  const s = Store.get();
+  s.subjects.push({ id: uid(), name: name.trim(), sections:[
+    {id:uid(), name:'Notes', builtIn:true},{id:uid(), name:'Short Notes', builtIn:true},{id:uid(), name:'Previous Year Question Papers', builtIn:true}
+  ]});
+  Store.saveNow(); paintDashboard();
+};
+window.renameSubject = function(id){
+  const s = Store.get(); const sub = s.subjects.find(x=>x.id===id); if(!sub) return;
+  const name = prompt('Rename subject:', sub.name); if(!name) return;
+  sub.name = name.trim(); Store.saveNow(); Router.resolve();
+};
+window.deleteSubject = function(id){
+  if(!confirm('Delete this subject and all its sections? Files will move to Recycle Bin.')) return;
+  const s = Store.get();
+  const sub = s.subjects.find(x=>x.id===id);
+  if(sub){ FileDB.all().then(all => all.filter(f=>f.subjectId===id).forEach(f => FileDB.put({...f, deleted:true, deletedAt:Date.now()}))); }
+  s.subjects = s.subjects.filter(x=>x.id!==id);
+  Store.saveNow(); Router.navigate('/dashboard');
+};
+window.openSubject = function(id){ flipTo('/subject/'+id); };
+function flipTo(hash){
+  const s = Store.get();
+  if(s.animations){
+    const overlay = document.createElement('div'); overlay.className='pageflip-overlay';
+    document.body.appendChild(overlay);
+    setTimeout(()=>{ Router.navigate(hash); overlay.remove(); }, 260);
+  } else Router.navigate(hash);
+}
+
+/* =====================================================================
+   VIEW: SUBJECTS LIST (sidebar link) — reuse dashboard shelf
+   ===================================================================== */
+function viewSubjects(){ if(!requireAuth()) return; paintDashboard(); }
+
+/* =====================================================================
+   VIEW: SUBJECT PAGE (section bookshelf)
+   ===================================================================== */
+const SECTION_ICON = { 'Notes':'📕','Short Notes':'📘','Previous Year Question Papers':'📙' };
+function viewSubject(params){
+  if(!requireAuth()) return;
+  const s = Store.get();
+  const sub = s.subjects.find(x=>x.id===params.id);
+  if(!sub){ Router.navigate('/dashboard'); return; }
+  const books = sub.sections.map(sec => bookHtml(sec.id, sec.name, '', `openSection('${sub.id}','${sec.id}')`,
+    `<button onclick="renameSection('${sub.id}','${sec.id}')">${icon('edit')}</button>${sec.builtIn?'':`<button onclick="deleteSection('${sub.id}','${sec.id}')">${icon('trash')}</button>`}`
+  )).join('');
+  const addBook = `<div class="book addnew" onclick="addSectionPrompt('${sub.id}')">${icon('plus')}</div>`;
+  render(shellStart('subjects','Subjects / '+esc(sub.name), sub.name, 'A dedicated shelf for this subject — notes, papers, and anything you add.', `
+    <div class="shelf-row">
+      <div class="shelf-books">${books}${addBook}</div>
+      <div class="plank"></div>
+    </div>
+    <button class="btn ghost" onclick="Router.navigate('/dashboard')">${icon('chevL')} Back to all subjects</button>
+  `));
+}
+window.addSectionPrompt = function(subjectId){
+  const name = prompt('New section name (e.g. Assignments, Lab Records, Seminar):');
+  if(!name) return;
+  const s = Store.get(); const sub = s.subjects.find(x=>x.id===subjectId);
+  sub.sections.push({ id: uid(), name: name.trim(), builtIn:false });
+  Store.saveNow(); Router.resolve();
+};
+window.renameSection = function(subjectId, sectionId){
+  const s = Store.get(); const sub = s.subjects.find(x=>x.id===subjectId); const sec = sub.sections.find(x=>x.id===sectionId);
+  const name = prompt('Rename section:', sec.name); if(!name) return;
+  sec.name = name.trim(); Store.saveNow(); Router.resolve();
+};
+window.deleteSection = function(subjectId, sectionId){
+  if(!confirm('Delete this section? Files inside will move to Recycle Bin.')) return;
+  const s = Store.get(); const sub = s.subjects.find(x=>x.id===subjectId);
+  FileDB.all().then(all => all.filter(f=>f.subjectId===subjectId && f.sectionId===sectionId).forEach(f => FileDB.put({...f, deleted:true, deletedAt:Date.now()})));
+  sub.sections = sub.sections.filter(x=>x.id!==sectionId);
+  Store.saveNow(); Router.resolve();
+};
+window.openSection = function(subjectId, sectionId){ flipTo('/section/'+subjectId+'/'+sectionId); };
+
+/* =====================================================================
+   VIEW: SECTION PAGE (upload + file grid/list)
+   ===================================================================== */
+let sectionView = 'grid';
+let sectionSort = 'date-desc';
+let sectionQuery = '';
+async function viewSection(params){
+  if(!requireAuth()) return;
+  const s = Store.get();
+  const sub = s.subjects.find(x=>x.id===params.subjectId);
+  if(!sub) { Router.navigate('/dashboard'); return; }
+  const sec = sub.sections.find(x=>x.id===params.sectionId);
+  if(!sec) { Router.navigate('/subject/'+sub.id); return; }
+  let files = await FileDB.bySection(sub.id, sec.id);
+  files = applySort(applyFilter(files, sectionQuery), sectionSort);
+
+  render(shellStart('subjects', esc(sub.name)+' / '+esc(sec.name), sec.name, 'Upload, organize, and read your PDFs for this section.', `
+    <div class="dropzone" id="dz" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')"
+         ondrop="handleDrop(event,'${sub.id}','${sec.id}')">
+      ${icon('upload')}
+      <h3>Drag &amp; drop PDFs here</h3>
+      <p>or</p>
+      <button class="btn gold" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+      <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none" onchange="handleBrowse(event,'${sub.id}','${sec.id}')"/>
+    </div>
+    <div class="toolbar">
+      <div class="grow searchbox" style="max-width:280px"><input type="search" placeholder="Search this section…" value="${esc(sectionQuery)}" oninput="sectionQuery=this.value; Router.resolve();"/></div>
+      <select onchange="sectionSort=this.value; Router.resolve();">
+        <option value="date-desc" ${sectionSort==='date-desc'?'selected':''}>Newest first</option>
+        <option value="date-asc" ${sectionSort==='date-asc'?'selected':''}>Oldest first</option>
+        <option value="name-asc" ${sectionSort==='name-asc'?'selected':''}>Name (A–Z)</option>
+        <option value="size-desc" ${sectionSort==='size-desc'?'selected':''}>Largest first</option>
+      </select>
+      <div class="viewtoggle">
+        <button class="${sectionView==='grid'?'active':''}" onclick="sectionView='grid'; Router.resolve();">${icon('grid')}</button>
+        <button class="${sectionView==='list'?'active':''}" onclick="sectionView='list'; Router.resolve();">${icon('list')}</button>
+      </div>
+    </div>
+    ${files.length===0 ? emptyState('No PDFs yet','Upload your first file to see it appear here as a book.') :
+      (sectionView==='grid' ? gridHtml(files) : listHtml(files))}
+    <div style="margin-top:20px"><button class="btn ghost" onclick="Router.navigate('/subject/${sub.id}')">${icon('chevL')} Back to ${esc(sub.name)}</button></div>
+  `));
+}
+function emptyState(title,sub){
+  return `<div class="empty-state">${icon('folder')}<h3 class="h-display">${title}</h3><p>${sub}</p></div>`;
+}
+function applyFilter(files,q){
+  if(!q) return files;
+  q = q.toLowerCase();
+  return files.filter(f => f.name.toLowerCase().includes(q));
+}
+function applySort(files, mode){
+  const f = [...files];
+  if(mode==='date-desc') f.sort((a,b)=>b.uploadDate-a.uploadDate);
+  if(mode==='date-asc') f.sort((a,b)=>a.uploadDate-b.uploadDate);
+  if(mode==='name-asc') f.sort((a,b)=>a.name.localeCompare(b.name));
+  if(mode==='size-desc') f.sort((a,b)=>b.size-a.size);
+  return f;
+}
+function gridHtml(files){
+  return `<div class="file-grid">${files.map(f=>`
+    <div class="file-card">
+      <div class="file-cover" onclick="openViewer('${f.id}')">
+        ${icon('book')}
+        <button class="fav-btn ${f.favorite?'on':''}" onclick="event.stopPropagation();toggleFavorite('${f.id}')">${icon('star')}</button>
+      </div>
+      <div class="file-name" title="${esc(f.name)}">${esc(f.name)}</div>
+      <div class="file-meta">${fmtDate(f.uploadDate)} · ${fmtBytes(f.size)}</div>
+      <div class="file-actions">
+        <button class="btn small icon" title="Preview" onclick="openViewer('${f.id}')">${icon('eye')}</button>
+        <button class="btn small icon" title="Rename" onclick="renameFile('${f.id}')">${icon('edit')}</button>
+        <button class="btn small icon" title="Download" onclick="downloadFile('${f.id}')">${icon('download')}</button>
+        <button class="btn small icon danger" title="Delete" onclick="trashFile('${f.id}')">${icon('trash')}</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function listHtml(files){
+  return `<table class="file-list"><thead><tr><th>Name</th><th>Uploaded</th><th>Size</th><th></th></tr></thead><tbody>
+    ${files.map(f=>`<tr>
+      <td style="cursor:pointer" ondblclick="openViewer('${f.id}')">${esc(f.name)} ${f.favorite?icon('star','','' ):''}</td>
+      <td>${fmtDate(f.uploadDate)}</td><td>${fmtBytes(f.size)}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn small icon" title="Open" onclick="openViewer('${f.id}')">${icon('eye')}</button>
+        <button class="btn small icon" title="Rename" onclick="renameFile('${f.id}')">${icon('edit')}</button>
+        <button class="btn small icon" title="Download" onclick="downloadFile('${f.id}')">${icon('download')}</button>
+        <button class="btn small icon danger" title="Delete" onclick="trashFile('${f.id}')">${icon('trash')}</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+async function ingestFiles(fileList, subjectId, sectionId){
+  const arr = Array.from(fileList).filter(f=>f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if(arr.length===0){ toast('Please choose PDF files.'); return; }
+  for(const f of arr){
+    const record = { id: uid(), subjectId, sectionId, name:f.name, size:f.size, type:f.type||'application/pdf',
+      uploadDate: Date.now(), lastOpened:null, favorite:false, deleted:false, blob:f, bookmarks:[] };
+    await FileDB.add(record);
+  }
+  toast(arr.length+' file(s) uploaded.');
+  Router.resolve();
+}
+window.handleDrop = function(e, subjectId, sectionId){
+  e.preventDefault(); e.currentTarget.classList.remove('drag');
+  ingestFiles(e.dataTransfer.files, subjectId, sectionId);
+};
+window.handleBrowse = function(e, subjectId, sectionId){ ingestFiles(e.target.files, subjectId, sectionId); };
+window.toggleFavorite = async function(id){ const f = await FileDB.get(id); f.favorite = !f.favorite; await FileDB.put(f); Router.resolve(); };
+window.renameFile = async function(id){ const f = await FileDB.get(id); const name = prompt('Rename file:', f.name); if(!name) return; f.name=name.trim(); await FileDB.put(f); Router.resolve(); };
+window.downloadFile = async function(id){ const f = await FileDB.get(id); const url = URL.createObjectURL(f.blob); const a=document.createElement('a'); a.href=url; a.download=f.name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000); };
+window.trashFile = async function(id){ if(!confirm('Move this file to Recycle Bin?')) return; const f = await FileDB.get(id); f.deleted=true; f.deletedAt=Date.now(); await FileDB.put(f); Router.resolve(); };
+window.openViewer = function(id){ Router.navigate('/viewer/'+id); };
+
+/* =====================================================================
+   VIEW: PDF VIEWER
+   ===================================================================== */
+let pdfDoc=null, pdfPage=1, pdfZoom=1.1, pdfFile=null, pdfFullscreen=false, pdfDarkInvert=false, pdfSearchResults=[];
+async function viewViewer(params){
+  if(!requireAuth()) return;
+  const f = await FileDB.get(params.id);
+  if(!f){ Router.navigate('/dashboard'); return; }
+  pdfFile = f; pdfPage = f.lastPage || 1; pdfZoom = 1.1; pdfFullscreen=false; pdfDarkInvert=false; pdfSearchResults=[];
+  f.lastOpened = Date.now(); await FileDB.put(f);
+
+  const s = Store.get();
+  render(shellStart('subjects','Viewer', f.name, '', `
+    <div class="viewer" id="viewerRoot">
+      <div class="viewer-thumbs" id="thumbSidebar"><div style="text-align:center;color:var(--text-2);font-size:12px;padding:10px">Loading…</div></div>
+      <div class="viewer-main">
+        <div class="viewer-toolbar">
+          <button class="btn icon" onclick="pdfGoPage(pdfPage-1)">${icon('chevL')}</button>
+          <span class="pill" id="pageIndicator">Page 1</span>
+          <button class="btn icon" onclick="pdfGoPage(pdfPage+1)">${icon('chevR')}</button>
+          <button class="btn icon" onclick="pdfZoomOut()">${icon('zoomOut')}</button>
+          <span class="pill" id="zoomIndicator">110%</span>
+          <button class="btn icon" onclick="pdfZoomIn()">${icon('zoomIn')}</button>
+          <button class="btn icon" onclick="toggleBookmark()" id="bmBtn">${icon('bookmark')}</button>
+          <button class="btn icon" onclick="toggleDarkInvert()" title="Invert for reading in the dark">${icon('moon')}</button>
+          <div class="spacer"></div>
+          <button class="btn small" onclick="toggleSearchPanel()">${icon('search')} Search</button>
+          <button class="btn icon" onclick="downloadFile('${f.id}')">${icon('download')}</button>
+          <button class="btn icon" onclick="toggleFullscreen()">${icon('expand')}</button>
+        </div>
+        <div class="viewer-progress"><div class="bar" id="progBar" style="width:0%"></div></div>
+        <div class="viewer-canvas-wrap" id="canvasWrap"><canvas id="pdfCanvas"></canvas></div>
+      </div>
+      <div id="searchPanelHost"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn ghost" onclick="history.back()">${icon('chevL')} Back</button></div>
+  `));
+  loadPdf(f);
+}
+async function loadPdf(f){
+  try{
+    const url = URL.createObjectURL(f.blob);
+    const task = pdfjsLib.getDocument(url);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfDoc = await task.promise;
+    renderThumbs();
+    renderPage(pdfPage);
+  }catch(e){
+    document.getElementById('canvasWrap').innerHTML = '<div class="empty-state">'+icon('book')+'<h3 class="h-display">Could not render PDF</h3><p>'+esc(e.message||'')+'</p></div>';
+  }
+}
+async function renderPage(num){
+  if(!pdfDoc) return;
+  num = Math.max(1, Math.min(pdfDoc.numPages, num));
+  pdfPage = num; pdfFile.lastPage = num;
+  const page = await pdfDoc.getPage(num);
+  const viewport = page.getViewport({scale: pdfZoom});
+  const canvas = document.getElementById('pdfCanvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({canvasContext:ctx, viewport}).promise;
+  document.getElementById('pageIndicator').textContent = 'Page '+num+' / '+pdfDoc.numPages;
+  document.getElementById('zoomIndicator').textContent = Math.round(pdfZoom*100/1.1*100)/100 + '%';
+  document.getElementById('progBar').style.width = (num/pdfDoc.numPages*100)+'%';
+  const bmBtn = document.getElementById('bmBtn');
+  if(bmBtn) bmBtn.style.color = (pdfFile.bookmarks||[]).includes(num) ? 'var(--gold-400)' : '';
+  document.querySelectorAll('.viewer-thumbs .thumb').forEach(t=>t.classList.toggle('active', +t.dataset.p===num));
+  const wrap = document.getElementById('canvasWrap'); wrap.classList.toggle('darkinvert', pdfDarkInvert);
+  FileDB.put(pdfFile);
+}
+async function renderThumbs(){
+  const host = document.getElementById('thumbSidebar');
+  host.innerHTML='';
+  for(let i=1;i<=pdfDoc.numPages;i++){
+    const div = document.createElement('div'); div.className='thumb'; div.dataset.p=i;
+    div.innerHTML = `<canvas></canvas><div class="tnum">${i}</div>`;
+    div.onclick = () => renderPage(i);
+    host.appendChild(div);
+    const page = await pdfDoc.getPage(i);
+    const vp = page.getViewport({scale:0.18});
+    const c = div.querySelector('canvas'); c.width=vp.width; c.height=vp.height;
+    page.render({canvasContext:c.getContext('2d'), viewport:vp});
+  }
+}
+window.pdfGoPage = (n)=>renderPage(n);
+window.pdfZoomIn = ()=>{ pdfZoom = Math.min(3, pdfZoom+0.2); renderPage(pdfPage); };
+window.pdfZoomOut = ()=>{ pdfZoom = Math.max(0.4, pdfZoom-0.2); renderPage(pdfPage); };
+window.toggleDarkInvert = ()=>{ pdfDarkInvert=!pdfDarkInvert; document.getElementById('canvasWrap').classList.toggle('darkinvert', pdfDarkInvert); };
+window.toggleBookmark = async ()=>{
+  pdfFile.bookmarks = pdfFile.bookmarks||[];
+  const i = pdfFile.bookmarks.indexOf(pdfPage);
+  if(i>=0) pdfFile.bookmarks.splice(i,1); else pdfFile.bookmarks.push(pdfPage);
+  await FileDB.put(pdfFile);
+  toast(i>=0 ? 'Bookmark removed' : 'Page bookmarked');
+  renderPage(pdfPage);
+};
+window.toggleFullscreen = ()=>{
+  const el = document.getElementById('viewerRoot');
+  pdfFullscreen = !pdfFullscreen;
+  el.classList.toggle('fullscreen', pdfFullscreen);
+};
+window.toggleSearchPanel = async ()=>{
+  const host = document.getElementById('searchPanelHost');
+  if(host.innerHTML){ host.innerHTML=''; return; }
+  host.innerHTML = `<div class="viewer-search-panel">
+    <input type="text" placeholder="Search inside PDF…" id="pdfSearchInput" style="width:100%;margin-bottom:8px" onkeydown="if(event.key==='Enter') runPdfSearch()"/>
+    <button class="btn small gold" style="width:100%" onclick="runPdfSearch()">Search</button>
+    <div id="pdfSearchResults" style="margin-top:10px;max-height:220px;overflow:auto"></div>
+  </div>`;
+};
+window.runPdfSearch = async ()=>{
+  const q = document.getElementById('pdfSearchInput').value.trim().toLowerCase();
+  const resHost = document.getElementById('pdfSearchResults');
+  if(!q){ resHost.innerHTML=''; return; }
+  resHost.innerHTML = '<div style="font-size:12px;color:var(--text-2)">Searching…</div>';
+  const matches = [];
+  for(let i=1;i<=pdfDoc.numPages;i++){
+    const page = await pdfDoc.getPage(i);
+    const tc = await page.getTextContent();
+    const text = tc.items.map(it=>it.str).join(' ').toLowerCase();
+    if(text.includes(q)) matches.push(i);
+  }
+  resHost.innerHTML = matches.length ? matches.map(p=>`<div class="res" onclick="renderPage(${p})">Match on page ${p}</div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-2)">No matches found.</div>';
+};
+
+/* =====================================================================
+   VIEW: RECENT / FAVORITES / RECYCLE / SEARCH
+   ===================================================================== */
+function subjectSectionName(subjectId, sectionId){
+  const s = Store.get(); const sub = s.subjects.find(x=>x.id===subjectId);
+  const sec = sub ? sub.sections.find(x=>x.id===sectionId) : null;
+  return { subName: sub?sub.name:'(deleted subject)', secName: sec?sec.name:'(deleted section)' };
+}
+function fileRowsHtml(files, opts={}){
+  if(files.length===0) return emptyState(opts.emptyTitle||'Nothing here yet', opts.emptySub||'');
+  return `<table class="file-list"><thead><tr><th>Name</th><th>Subject / Section</th><th>Date</th><th>Size</th><th></th></tr></thead><tbody>
+    ${files.map(f=>{
+      const {subName,secName} = subjectSectionName(f.subjectId,f.sectionId);
+      return `<tr>
+        <td style="cursor:pointer" ondblclick="openViewer('${f.id}')">${esc(f.name)}</td>
+        <td>${esc(subName)} / ${esc(secName)}</td>
+        <td>${fmtDate(opts.dateField ? f[opts.dateField]||f.uploadDate : f.uploadDate)}</td>
+        <td>${fmtBytes(f.size)}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn small icon" title="Open" onclick="openViewer('${f.id}')">${icon('eye')}</button>
+          ${opts.recycle ? `
+            <button class="btn small icon" title="Restore" onclick="restoreFile('${f.id}')">${icon('upload')}</button>
+            <button class="btn small icon danger" title="Delete forever" onclick="purgeFile('${f.id}')">${icon('x')}</button>
+          ` : `
+            <button class="btn small icon" title="Favorite" onclick="toggleFavorite('${f.id}')">${icon('star')}</button>
+            <button class="btn small icon" title="Download" onclick="downloadFile('${f.id}')">${icon('download')}</button>
+          `}
+        </td>
+      </tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+async function viewRecent(){
+  if(!requireAuth()) return;
+  const all = await FileDB.all();
+  const files = all.filter(f=>!f.deleted && f.lastOpened).sort((a,b)=>b.lastOpened-a.lastOpened).slice(0,40);
+  render(shellStart('recent','Library','Recent Files','The last files you opened.', fileRowsHtml(files,{dateField:'lastOpened', emptyTitle:'No recent files', emptySub:'Files you open will show up here.'})));
+}
+async function viewFavorites(){
+  if(!requireAuth()) return;
+  const all = await FileDB.all();
+  const files = all.filter(f=>!f.deleted && f.favorite).sort((a,b)=>b.uploadDate-a.uploadDate);
+  render(shellStart('favorites','Library','Favorites','Files you have starred for quick access.', fileRowsHtml(files,{emptyTitle:'No favorites yet', emptySub:'Star a file to pin it here.'})));
+}
+async function viewRecycle(){
+  if(!requireAuth()) return;
+  const all = await FileDB.all();
+  const files = all.filter(f=>f.deleted).sort((a,b)=>b.deletedAt-a.deletedAt);
+  render(shellStart('recycle','Library','Recycle Bin','Deleted files. Restore them or remove them forever.',
+    (files.length ? `<div style="margin-bottom:14px"><button class="btn ghost" onclick="emptyRecycle()">${icon('trash')} Empty recycle bin</button></div>`:'') +
+    fileRowsHtml(files,{recycle:true, dateField:'deletedAt', emptyTitle:'Recycle bin is empty', emptySub:'Deleted files will appear here before permanent removal.'})));
+}
+window.restoreFile = async (id)=>{ const f = await FileDB.get(id); f.deleted=false; delete f.deletedAt; await FileDB.put(f); toast('File restored'); Router.resolve(); };
+window.purgeFile = async (id)=>{ if(!confirm('Permanently delete this file? This cannot be undone.')) return; await FileDB.delete(id); toast('File permanently deleted'); Router.resolve(); };
+window.emptyRecycle = async ()=>{ if(!confirm('Permanently delete all files in the recycle bin?')) return; const all = await FileDB.all(); for(const f of all.filter(x=>x.deleted)) await FileDB.delete(f.id); toast('Recycle bin emptied'); Router.resolve(); };
+
+async function viewSearch(params){
+  if(!requireAuth()) return;
+  const q = (params.q||'').toLowerCase();
+  const s = Store.get();
+  const subjMatches = s.subjects.filter(sub=>sub.name.toLowerCase().includes(q));
+  const secMatches = [];
+  s.subjects.forEach(sub=>sub.sections.forEach(sec=>{ if(sec.name.toLowerCase().includes(q)) secMatches.push({sub,sec}); }));
+  const all = await FileDB.all();
+  const fileMatches = all.filter(f=>!f.deleted && f.name.toLowerCase().includes(q));
+  render(shellStart('dashboard','Search','Results for “'+esc(params.q)+'”','', `
+    <div class="settings-grid">
+      <div class="setting-card"><h3>Subjects (${subjMatches.length})</h3>${subjMatches.map(su=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="Router.navigate('/subject/${su.id}')">${esc(su.name)}</div>`).join('') || '<p class="desc">No matches.</p>'}</div>
+      <div class="setting-card"><h3>Sections (${secMatches.length})</h3>${secMatches.map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="Router.navigate('/section/${m.sub.id}/${m.sec.id}')">${esc(m.sub.name)} / ${esc(m.sec.name)}</div>`).join('') || '<p class="desc">No matches.</p>'}</div>
+      <div class="setting-card"><h3>PDFs (${fileMatches.length})</h3>${fileMatches.map(f=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openViewer('${f.id}')">${esc(f.name)}</div>`).join('') || '<p class="desc">No matches.</p>'}</div>
+    </div>
+  `));
+}
+
+/* =====================================================================
+   VIEW: SETTINGS
+   ===================================================================== */
+function viewSettings(){
+  if(!requireAuth()) return;
+  const s = Store.get();
+  const swatches = ['#c9a24d','#8fae7d','#7a9bc4','#c47a7a','#b98fc4','#c4a37a'];
+  render(shellStart('settings','Library','Settings','Tune MYNO to fit how you like to study.', `
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>Theme</h3><p class="desc">Switch between Light and Dark reading modes.</p>
+        <div class="row-between"><span>Dark mode</span><div class="toggle ${s.theme==='dark'?'on':''}" onclick="toggleTheme()"><div class="dot"></div></div></div>
+      </div>
+      <div class="setting-card">
+        <h3>Accent Color</h3><p class="desc">The gold-leaf accent used across MYNO.</p>
+        <div class="color-swatches">${swatches.map(c=>`<div class="swatch ${s.accentColor===c?'sel':''}" style="background:${c}" onclick="setAccent('${c}')"></div>`).join('')}</div>
+      </div>
+      <div class="setting-card">
+        <h3>Bookshelf Style</h3><p class="desc">Choose the wood finish for your shelves.</p>
+        <select onchange="setShelf(this.value)">
+          <option value="mahogany" ${s.shelfStyle==='mahogany'?'selected':''}>Mahogany</option>
+          <option value="walnut" ${s.shelfStyle==='walnut'?'selected':''}>Walnut</option>
+          <option value="oak" ${s.shelfStyle==='oak'?'selected':''}>Oak</option>
+        </select>
+      </div>
+      <div class="setting-card">
+        <h3>Animations</h3><p class="desc">Turn off motion for a calmer, faster interface.</p>
+        <div class="row-between"><span>Enable animations</span><div class="toggle ${s.animations?'on':''}" onclick="toggleAnim()"><div class="dot"></div></div></div>
+      </div>
+      <div class="setting-card">
+        <h3>Username</h3><p class="desc">Change how you're addressed on the dashboard.</p>
+        <div class="field"><input type="text" id="newUsername" placeholder="${esc(s.auth.username)}"/></div>
+        <button class="btn small gold" onclick="changeUsername()">Save Username</button>
+      </div>
+      <div class="setting-card">
+        <h3>Password</h3><p class="desc">Update your vault combination.</p>
+        <div class="field"><input type="password" id="newPass" placeholder="New password"/></div>
+        <button class="btn small gold" onclick="changePassword()">Save Password</button>
+      </div>
+      <div class="setting-card">
+        <h3>Backup</h3><p class="desc">Export your subjects, sections, and PDFs as a single file.</p>
+        <button class="btn small" onclick="doBackup()">${icon('download')} Export Backup</button>
+      </div>
+      <div class="setting-card">
+        <h3>Restore</h3><p class="desc">Import a previously exported MYNO backup file.</p>
+        <input type="file" accept="application/json" id="restoreInput" onchange="doRestore(event)"/>
+      </div>
+    </div>
+  `));
+}
+window.setAccent = (c)=>{ Store.set({accentColor:c}); applyTheme(); Router.resolve(); };
+window.setShelf = (v)=>{ Store.set({shelfStyle:v}); applyTheme(); toast('Shelf style updated'); };
+window.toggleAnim = ()=>{ const s=Store.get(); Store.set({animations: !s.animations}); applyTheme(); Router.resolve(); };
+window.changeUsername = ()=>{ const v = document.getElementById('newUsername').value.trim(); if(!v) return; const s=Store.get(); Store.set({auth:{...s.auth, username:v}}); toast('Username updated'); Router.resolve(); };
+window.changePassword = async ()=>{ const v = document.getElementById('newPass').value; if(v.length<4){toast('Password too short'); return;} const s=Store.get(); const hash= await simpleHash(v); Store.set({auth:{...s.auth, passHash:hash}}); toast('Password updated'); Router.resolve(); };
+window.doBackup = async ()=>{
+  const s = Store.get();
+  const files = await FileDB.all();
+  const filesEncoded = await Promise.all(files.map(f => new Promise(res=>{
+    const reader = new FileReader();
+    reader.onload = () => res({ ...f, blob: undefined, dataUrl: reader.result });
+    reader.readAsDataURL(f.blob);
+  })));
+  const payload = { state: s, files: filesEncoded, exportedAt: Date.now() };
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='myno-backup.json'; a.click();
+  toast('Backup exported');
+};
+window.doRestore = async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const text = await file.text();
+  try{
+    const payload = JSON.parse(text);
+    Store.set(payload.state);
+    for(const f of payload.files){
+      const r = await fetch(f.dataUrl); const blob = await r.blob();
+      await FileDB.put({ ...f, blob, dataUrl: undefined });
+    }
+    applyTheme();
+    toast('Backup restored');
+    Router.navigate('/dashboard');
+  }catch(err){ toast('Could not read backup file'); }
+};
+
+/* =====================================================================
+   ROUTES
+   ===================================================================== */
+Router.on('/', () => { const s = Store.get(); if(s.session) Router.navigate('/dashboard'); else viewLanding(); });
+Router.on('/login', viewLogin);
+Router.on('/dashboard', viewDashboard);
+Router.on('/subjects', viewSubjects);
+Router.on('/subject/:id', viewSubject);
+Router.on('/section/:subjectId/:sectionId', viewSection);
+Router.on('/viewer/:id', viewViewer);
+Router.on('/recent', viewRecent);
+Router.on('/favorites', viewFavorites);
+Router.on('/recycle', viewRecycle);
+Router.on('/search/:q', viewSearch);
+Router.on('/settings', viewSettings);
+
+Router.start();
+</script>
+</body>
+</html>
